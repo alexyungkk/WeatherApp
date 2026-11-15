@@ -1,55 +1,98 @@
 package com.example.weatherapp.ui.theme.screens
 
-import android.view.Window
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.paint
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.example.weatherapp.R
-import com.example.weatherapp.models.Weather
-
+import androidx.navigation.NavController
+import coil3.compose.AsyncImage
+import kotlin.math.roundToInt
+import com.example.weatherapp.MainViewModel
 @Composable
-fun NowWeather(innerPadding: PaddingValues) {
-    val nowWeather = Weather(
-        "22 Sept 2026",
-        "Sunny",
-        temperature = "18",
-        feelLike = "12",
-        wind = "SW 18 kph",
-        resourceId = R.drawable.sunny
-    )
+fun NowWeather(viewModel: MainViewModel) {
+    val weather = viewModel.weather
+    val searchTextFieldState = rememberTextFieldState(initialText = "")
+
+    val location = viewModel.location
+    val coordinates = "${location?.latitude},${location?.longitude}"
+    LaunchedEffect(key1 = location) {
+        if (location != null) {
+            viewModel.getWeather(query = coordinates)
+        }
+    }
     Column(
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxSize()
-            .paint(
-                painter = painterResource(id = R.drawable.mrweather),
-                contentScale = ContentScale.Crop
-            )
+            .padding(16.dp)
     ) {
-        Image(
-            painter = painterResource(id= nowWeather.resourceId),
-            contentDescription = nowWeather.temperature
+        TextField(
+            state = searchTextFieldState,
+            label = { Text("Search the Location") }
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Button(
+            onClick = {
+                if (searchTextFieldState.text.toString().trim().isEmpty()) {
+                    viewModel.getWeather(query = coordinates)
+                } else {
+                    viewModel.getWeather(searchTextFieldState.text.toString().trim())
+                }
+                searchTextFieldState.clearText()
+            }
+        ) {
+            Text("Search")
+        }
+    }
 
-        Text(text= "Temperature: " + nowWeather.temperature, color = Color.White)
-        Text(text= "Feel like: " + nowWeather.feelLike, color = Color.White)
-        Text(text= "Wind: " + nowWeather.wind, color = Color.White)
+    weather?.let {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                AsyncImage(
+                    model = "https://${weather.current.condition.weatherIcon}",
+                    contentDescription = "Weather Icon",
+                    modifier = Modifier.size(100.dp)
+                )
+                Text("${weather.current.condition.description}")
+            }
+
+            Column(
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("${weather.current.tempCelsius.roundToInt()}°C", style = MaterialTheme.typography.headlineLarge)
+                Text("Feel like: ${weather.current.feelslike_c.roundToInt()}°C")
+                Text("Wind: ${weather.current.wind_kph.roundToInt()}km/h")
+                Text("Wind Direction: ${weather.current.wind_dir}")
+                Text("Chance of Rain: ${weather.current.chance_of_rain} %")
+                Text("Precipitation: ${weather.current.precip_mm} mm")
+                Text("Humidity: ${weather.current.humidity} %")
+            }
+        }
     }
 }
+

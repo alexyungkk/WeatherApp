@@ -1,9 +1,11 @@
 package com.example.pokemonsandbox.ui.theme
 
+import android.Manifest
+import android.graphics.drawable.Icon
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CenterFocusWeak
@@ -19,28 +21,47 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.weatherapp.R
-//import com.example.weatherapp.ui.screens.FavoritesScreen
-//import com.example.weatherapp.ui.theme.screens.SearchScreen
+import com.example.weatherapp.MainViewModel
 import com.example.weatherapp.ui.theme.screens.DailyWeather
 import com.example.weatherapp.ui.theme.screens.NowWeather
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Navigation() {
+fun Navigation(viewModel: MainViewModel) {
+    // Begin: Ask permission to get device location.
+    // Note: If permission is previously granted, the dialog won't appear and refreshLocation() will get called.
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        if (results.values.any { it }) {
+            viewModel.refreshLocation() // call a function to get the current location for device
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        launcher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        )
+    }
+    // End: Ask permission to get device location.
     val navController = rememberNavController()
     var selectedIndex by remember { mutableIntStateOf(0) } // default set to 0
+    val location = viewModel.location
+    val weather = viewModel.weather
     Scaffold(
         topBar = {
             TopAppBar(
@@ -48,15 +69,7 @@ fun Navigation() {
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.primary,
                 ),
-                title = {
-                    //Re-render when selectedIndex changes
-                    if (selectedIndex == 0){
-                        Text("Weather Now")
-                    }
-                    else if(selectedIndex == 1){
-                        Text("Daily Weather")
-                    }
-                }
+                title = { Text("${weather?.location?.name}, ${weather?.location?.region}") },
             )
         },
         bottomBar = {
@@ -68,7 +81,6 @@ fun Navigation() {
                 // For search screen
                 NavigationBarItem(
                     icon = { Icon(imageVector = Icons.Default.WbSunny, contentDescription = "Now") },
-
                     label = { Text("Now") },
                     selected = selectedIndex == 0,
                     onClick = {
@@ -120,11 +132,11 @@ fun Navigation() {
                 exitTransition = {
                     slideOutOfContainer(
                         towards = AnimatedContentTransitionScope.SlideDirection.Left,
-                        animationSpec = tween(800)
-                    )
+                animationSpec = tween(800)
+            )
                 }
             ) {
-                NowWeather(innerPadding)
+                NowWeather(viewModel)
             }
             composable(route = "Daily Weather",
                 enterTransition = {
@@ -140,7 +152,7 @@ fun Navigation() {
                     )
                 }
             ) {
-                DailyWeather(innerPadding)
+                DailyWeather(viewModel)
             }
         }
     }

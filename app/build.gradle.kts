@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
@@ -32,6 +33,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -52,6 +54,16 @@ dependencies {
     // Icons (for the nav menu buttons)
     implementation("androidx.compose.material:material-icons-core:1.7.8")
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
+
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    // Retrofit GSON Converter
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+    // Coil (use v3.4.0 for Kotlin compatibility)
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
+    //Location service
+    implementation("com.google.android.gms:play-services-location:21.4.0")
     
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
